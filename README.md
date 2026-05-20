@@ -17,6 +17,10 @@
 
 //execute
 
+python Part5_evaluation.py --frames my_Frames --output output 
+
+// OR
+
 python Part5_evaluation.py --frames my_Frames/ --output output/ --gop 8 --qf 1.0 --window 8
 
 //Lancer le test synthétique (sans frames réelles)
