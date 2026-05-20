@@ -1,11 +1,3 @@
-"""
-Part 4 — Entropy Coding (15%)
-- Serialize all encoded frame data
-- Compress with zlib (lossless)
-- Write to .bin file
-- Implement decoder (read + decompress + deserialize)
-"""
-
 import zlib
 import pickle
 import struct
@@ -13,51 +5,32 @@ import os
 import numpy as np
 
 
-# ── File format ──────────────────────────────────────────────────────────────
-# [4 bytes: magic "MP4S"]
-# [4 bytes: number of frames (uint32)]
-# [4 bytes: metadata length (uint32)]
-# [N bytes: zlib-compressed pickle of header metadata]
-# For each frame:
-#   [4 bytes: compressed data length]
-#   [N bytes: zlib-compressed pickle of frame coefficients]
+
 
 MAGIC = b'MP4S'
 
 
-# ── Serializer ───────────────────────────────────────────────────────────────
+
 
 def _compress(obj) -> bytes:
-    """Pickle then zlib-compress an object."""
+
     raw = pickle.dumps(obj, protocol=4)
     return zlib.compress(raw, level=9)
 
 
 def _decompress(data: bytes):
-    """Zlib-decompress then unpickle an object."""
+
     raw = zlib.decompress(data)
     return pickle.loads(raw)
 
 
 def encode_to_bin(encoded_frames: list, output_path: str,
                   metadata: dict = None) -> int:
-    """
-    Write all encoded frames to a compressed .bin file.
-
-    Parameters
-    ----------
-    encoded_frames : list of dicts from encode_gop()
-    output_path    : path to output .bin file
-    metadata       : optional dict (gop_size, qf, original_frame_count, etc.)
-
-    Returns
-    -------
-    int : total file size in bytes
-    """
+    
     if metadata is None:
         metadata = {}
 
-    # Separate heavy numpy arrays from lightweight metadata per frame
+
     frame_headers = []
     frame_data_list = []
 
@@ -81,13 +54,13 @@ def encode_to_bin(encoded_frames: list, output_path: str,
     os.makedirs(os.path.dirname(output_path) or '.', exist_ok=True)
 
     with open(output_path, 'wb') as f:
-        # Magic + num_frames + meta_length
+
         f.write(MAGIC)
         f.write(struct.pack('>I', len(encoded_frames)))
         f.write(struct.pack('>I', len(compressed_meta)))
         f.write(compressed_meta)
 
-        # Each frame's compressed coefficient data
+
         for cdata in compressed_frames:
             f.write(struct.pack('>I', len(cdata)))
             f.write(cdata)
@@ -97,17 +70,9 @@ def encode_to_bin(encoded_frames: list, output_path: str,
     return size
 
 
-# ── Deserializer ─────────────────────────────────────────────────────────────
 
 def decode_from_bin(input_path: str) -> tuple[list, dict]:
-    """
-    Read and decompress a .bin file.
-
-    Returns
-    -------
-    encoded_frames : list of dicts (same format as encode_gop() output)
-    metadata       : dict of global metadata
-    """
+    
     with open(input_path, 'rb') as f:
         magic = f.read(4)
         if magic != MAGIC:
@@ -137,13 +102,9 @@ def decode_from_bin(input_path: str) -> tuple[list, dict]:
     return encoded_frames, metadata
 
 
-# ── Compression ratio helper ─────────────────────────────────────────────────
 
 def compute_original_size(encoded_frames: list) -> int:
-    """
-    Estimate the original uncompressed size in bytes.
-    Uses original_shape (H × W × 3 × 1 byte per pixel).
-    """
+    
     total = 0
     for enc in encoded_frames:
         h, w, c = enc['original_shape']

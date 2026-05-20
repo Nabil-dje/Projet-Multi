@@ -4,10 +4,7 @@ import os
 
 
 def bgr_to_ycbcr(frame_bgr: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Convert a BGR image to YCbCr color space manually.
-    Returns Y, Cb, Cr channels as float32 arrays.
-    """
+    
     frame_float = frame_bgr.astype(np.float32)
     B = frame_float[:, :, 0]
     G = frame_float[:, :, 1]
@@ -21,10 +18,7 @@ def bgr_to_ycbcr(frame_bgr: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndar
 
 
 def chroma_subsample_420(Cb: np.ndarray, Cr: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Apply 4:2:0 chroma subsampling:
-    Reduce Cb and Cr by factor 2 in both horizontal and vertical directions.
-    """
+    
     Cb_sub = Cb[::2, ::2]
     Cr_sub = Cr[::2, ::2]
     return Cb_sub, Cr_sub
@@ -32,9 +26,7 @@ def chroma_subsample_420(Cb: np.ndarray, Cr: np.ndarray) -> tuple[np.ndarray, np
 
 def chroma_upsample(Cb_sub: np.ndarray, Cr_sub: np.ndarray,
                     original_shape: tuple) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Upsample Cb and Cr back to original frame size (nearest-neighbor).
-    """
+    
     h, w = original_shape[:2]
     Cb_up = cv2.resize(Cb_sub, (w, h), interpolation=cv2.INTER_NEAREST)
     Cr_up = cv2.resize(Cr_sub, (w, h), interpolation=cv2.INTER_NEAREST)
@@ -42,9 +34,7 @@ def chroma_upsample(Cb_sub: np.ndarray, Cr_sub: np.ndarray,
 
 
 def ycbcr_to_bgr(Y: np.ndarray, Cb: np.ndarray, Cr: np.ndarray) -> np.ndarray:
-    """
-    Convert YCbCr channels back to BGR image (uint8).
-    """
+    
     R = Y + 1.402 * (Cr - 128)
     G = Y - 0.344136 * (Cb - 128) - 0.714136 * (Cr - 128)
     B = Y + 1.772 * (Cb - 128)
@@ -55,10 +45,7 @@ def ycbcr_to_bgr(Y: np.ndarray, Cb: np.ndarray, Cr: np.ndarray) -> np.ndarray:
 
 
 def load_frames(folder_path: str) -> list[np.ndarray]:
-    """
-    Load all PNG/JPG frames from a folder, sorted by filename.
-    Returns list of BGR numpy arrays.
-    """
+    
     supported = ('.png', '.jpg', '.jpeg')
     files = sorted([
         f for f in os.listdir(folder_path)
@@ -80,10 +67,7 @@ def load_frames(folder_path: str) -> list[np.ndarray]:
 
 
 def preprocess_frames(frames: list[np.ndarray]) -> list[dict]:
-    """
-    Run the full pre-processing pipeline on a list of BGR frames.
-    Returns list of dicts with Y, Cb_sub, Cr_sub, original_shape.
-    """
+    
     processed = []
     for i, frame in enumerate(frames):
         Y, Cb, Cr = bgr_to_ycbcr(frame)
@@ -101,7 +85,7 @@ def preprocess_frames(frames: list[np.ndarray]) -> list[dict]:
 
 
 if __name__ == "__main__":
-    # Quick test with a synthetic frame
+
     dummy = np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
     Y, Cb, Cr = bgr_to_ycbcr(dummy)
     Cb_s, Cr_s = chroma_subsample_420(Cb, Cr)

@@ -1,21 +1,3 @@
-"""
-Part 5 — Evaluation & Visualisation (25%)
-
-5a — Quality Metrics:
-    - Compression ratio (global and per-frame)
-    - Frame-type breakdown (I-frames vs P-frames)
-    - PSNR per frame
-    - Compression ratio vs Quantization Factor plot
-    - Compression ratio vs GOP size plot
-
-5b — Pipeline Visualisation:
-    1. Original frames sequence
-    2. Y, Cb, Cr channels of one frame
-    3. One 8×8 block: raw pixels → DCT coefficients → quantised → reconstructed
-    4. Motion vectors overlaid on a P-frame
-    5. Residual maps alongside reconstructed frames
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -40,16 +22,9 @@ from Part3_Pframe import encode_gop, decode_all_frames, MACROBLOCK_SIZE
 from Part4_entropy import encode_to_bin, decode_from_bin, compute_original_size
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 5a — QUALITY METRICS
-# ─────────────────────────────────────────────────────────────────────────────
-
 def compute_psnr(original: np.ndarray, reconstructed: np.ndarray,
                  max_val: float = 255.0) -> float:
-    """
-    Compute Peak Signal-to-Noise Ratio between two images/channels.
-    Higher PSNR = better quality (> 30 dB is generally acceptable).
-    """
+
     mse = np.mean((original.astype(np.float64) - reconstructed.astype(np.float64)) ** 2)
     if mse == 0:
         return float('inf')
@@ -57,9 +32,7 @@ def compute_psnr(original: np.ndarray, reconstructed: np.ndarray,
 
 
 def reconstruct_frame_bgr(decoded_frame: dict) -> np.ndarray:
-    """
-    Reconstruct a BGR image from a decoded frame dict.
-    """
+ 
     Y = decoded_frame['Y']
     Cb_sub = decoded_frame['Cb_sub']
     Cr_sub = decoded_frame['Cr_sub']
@@ -72,21 +45,7 @@ def reconstruct_frame_bgr(decoded_frame: dict) -> np.ndarray:
 
 def evaluate_pipeline(original_frames: list, encoded_frames: list,
                        decoded_frames: list, bin_path: str) -> dict:
-    """
-    Compute all quality metrics for the full pipeline.
 
-    Returns a dict with:
-        - psnr_per_frame      : list of PSNR values (dB)
-        - frame_types         : list of 'I' or 'P'
-        - num_i_frames        : int
-        - num_p_frames        : int
-        - compression_ratio   : float (global)
-        - original_size_bytes : int
-        - compressed_size_bytes: int
-        - avg_psnr            : float
-        - min_psnr            : float
-        - max_psnr            : float
-    """
     bin_size = os.path.getsize(bin_path)
     orig_size = compute_original_size(encoded_frames)
     compression_ratio = orig_size / bin_size
@@ -144,18 +103,10 @@ def print_metrics_report(metrics: dict):
     print("=" * 55 + "\n")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Experimental plots: compression ratio vs QF and GOP size
-# ─────────────────────────────────────────────────────────────────────────────
-
 def plot_compression_vs_qf(preprocessed_frames: list,
                             qf_values: list = None,
                             gop_size: int = 8,
                             output_dir: str = ".") -> plt.Figure:
-    """
-    Plot compression ratio vs quantization factor (QF).
-    Also shows average PSNR vs QF on a secondary axis.
-    """
     if qf_values is None:
         qf_values = [0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 5.0]
 
@@ -283,9 +234,6 @@ def plot_compression_vs_gop(preprocessed_frames: list,
     return fig
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 5b — PIPELINE VISUALISATION (single figure)
-# ─────────────────────────────────────────────────────────────────────────────
 
 def visualize_pipeline(original_frames: list,
                         preprocessed_frames: list,
@@ -294,16 +242,8 @@ def visualize_pipeline(original_frames: list,
                         frame_idx: int = 0,
                         p_frame_idx: int = None,
                         output_dir: str = ".") -> plt.Figure:
-    """
-    Produce a comprehensive single-figure pipeline visualisation with 5 sections:
-      1. Original frame sequence (up to 6 frames)
-      2. Y, Cb, Cr channels of one frame
-      3. One 8×8 block: raw → DCT → quantised → reconstructed
-      4. Motion vectors overlaid on a P-frame
-      5. Residual maps alongside reconstructed frames
-    """
 
-    # ── Find a P-frame for sections 4 & 5 ────────────────────────────────
+
     if p_frame_idx is None:
         p_frame_idx = next(
             (i for i, e in enumerate(encoded_frames) if e['type'] == 'P'),
@@ -312,7 +252,6 @@ def visualize_pipeline(original_frames: list,
 
     has_p_frame = p_frame_idx is not None
 
-    # ── Figure layout ─────────────────────────────────────────────────────
     fig = plt.figure(figsize=(20, 24), facecolor='#0d0d1a')
     gs_main = gridspec.GridSpec(5, 1, figure=fig, hspace=0.5,
                                  top=0.97, bottom=0.03, left=0.04, right=0.96)
@@ -327,9 +266,7 @@ def visualize_pipeline(original_frames: list,
     def remove_axes(ax):
         ax.axis('off')
 
-    # ╔══════════════════════════════════════════════════════════════════════╗
-    # ║  SECTION 1 — Original frame sequence                                ║
-    # ╚══════════════════════════════════════════════════════════════════════╝
+
     gs1 = gridspec.GridSpecFromSubplotSpec(
         1, min(6, len(original_frames)), subplot_spec=gs_main[0], wspace=0.05)
 
@@ -345,9 +282,6 @@ def visualize_pipeline(original_frames: list,
         if j == 0:
             section_title(ax, '① Original Frame Sequence')
 
-    # ╔══════════════════════════════════════════════════════════════════════╗
-    # ║  SECTION 2 — Y, Cb, Cr channels                                     ║
-    # ╚══════════════════════════════════════════════════════════════════════╝
     gs2 = gridspec.GridSpecFromSubplotSpec(1, 4, subplot_spec=gs_main[1],
                                             wspace=0.06)
     prep = preprocessed_frames[frame_idx]
@@ -373,14 +307,12 @@ def visualize_pipeline(original_frames: list,
         if j == 0:
             section_title(ax, '② Color Space Decomposition (Frame 0)')
 
-    # ╔══════════════════════════════════════════════════════════════════════╗
-    # ║  SECTION 3 — 8×8 block through DCT pipeline                         ║
-    # ╚══════════════════════════════════════════════════════════════════════╝
+
     gs3 = gridspec.GridSpecFromSubplotSpec(1, 4, subplot_spec=gs_main[2],
                                             wspace=0.12)
 
     Y = preprocessed_frames[frame_idx]['Y']
-    # Pick a block near center for interesting content
+
     bh = min(BLOCK_SIZE, Y.shape[0])
     bw = min(BLOCK_SIZE, Y.shape[1])
     br = (Y.shape[0] // 2 // BLOCK_SIZE) * BLOCK_SIZE
@@ -421,9 +353,7 @@ def visualize_pipeline(original_frames: list,
         if j == 0:
             section_title(ax, '③ DCT & Quantisation Pipeline (8×8 block)')
 
-    # ╔══════════════════════════════════════════════════════════════════════╗
-    # ║  SECTION 4 — Motion vectors overlaid on P-frame                     ║
-    # ╚══════════════════════════════════════════════════════════════════════╝
+
     gs4 = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=gs_main[3],
                                             wspace=0.08)
     ax4a = fig.add_subplot(gs4[0, 0])
@@ -458,7 +388,6 @@ def visualize_pipeline(original_frames: list,
         for spine in ax4a.spines.values():
             spine.set_edgecolor('#333355')
 
-        # Motion magnitude heatmap
         mag = np.sqrt(mv[:, :, 0].astype(float)**2 + mv[:, :, 1].astype(float)**2)
         im4b = ax4b.imshow(mag, cmap='hot', interpolation='nearest')
         ax4b.set_title('Motion Magnitude Map', color='#aaaacc', fontsize=10)
@@ -477,9 +406,6 @@ def visualize_pipeline(original_frames: list,
 
     section_title(ax4a, '④ Motion Vectors & Magnitude (P-frame)')
 
-    # ╔══════════════════════════════════════════════════════════════════════╗
-    # ║  SECTION 5 — Residuals and reconstruction                           ║
-    # ╚══════════════════════════════════════════════════════════════════════╝
     n_cols = 4
     gs5 = gridspec.GridSpecFromSubplotSpec(1, n_cols, subplot_spec=gs_main[4],
                                             wspace=0.06)
@@ -534,7 +460,6 @@ def visualize_pipeline(original_frames: list,
                 spine.set_edgecolor('#333355')
             col += 1
 
-    # Fill remaining columns if needed
     while col < n_cols:
         ax_empty = fig.add_subplot(gs5[0, col])
         remove_axes(ax_empty)
@@ -550,12 +475,9 @@ def visualize_pipeline(original_frames: list,
     return fig
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PSNR per frame bar chart
-# ─────────────────────────────────────────────────────────────────────────────
 
 def plot_psnr_per_frame(metrics: dict, output_dir: str = ".") -> plt.Figure:
-    """Bar chart of PSNR per frame, coloured by frame type."""
+
     psnrs = metrics['psnr_per_frame']
     ftypes = metrics['frame_types']
     indices = list(range(len(psnrs)))
@@ -596,26 +518,14 @@ def plot_psnr_per_frame(metrics: dict, output_dir: str = ".") -> plt.Figure:
     return fig
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# MAIN — run full Part 5 evaluation
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def run_full_evaluation(frames_folder: str,
                          output_dir: str = "output",
                          gop_size: int = 8,
                          qf: float = 1.0,
                          search_window: int = 8):
-    """
-    Run the complete pipeline and produce all Part 5 outputs.
 
-    Parameters
-    ----------
-    frames_folder  : path to folder with PNG/JPG frames
-    output_dir     : where to save all output files
-    gop_size       : Group of Pictures size (every G-th frame is I-frame)
-    qf             : quantization factor (1.0 = standard JPEG quality)
-    search_window  : motion search window ±S pixels
-    """
     os.makedirs(output_dir, exist_ok=True)
     bin_path = os.path.join(output_dir, "encoded_video.bin")
 
@@ -665,9 +575,6 @@ def run_full_evaluation(frames_folder: str,
     return metrics
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Quick synthetic self-test (no real frames needed)
-# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import argparse
@@ -684,7 +591,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.frames:
-        # ── Real frames mode ─────────────────────────────────────────────
         run_full_evaluation(
             frames_folder="my_Frames",
             output_dir=args.output,
@@ -693,17 +599,15 @@ if __name__ == "__main__":
             search_window=args.window,
         )
     else:
-        # ── Synthetic test mode ──────────────────────────────────────────
+
         print("[Part 5] No --frames provided — running synthetic self-test...")
         import cv2
 
         TMP_DIR = "/tmp/synthetic_frames"
         os.makedirs(TMP_DIR, exist_ok=True)
 
-        # Generate 12 synthetic frames with slight motion
         for i in range(12):
             frame = np.zeros((64, 64, 3), dtype=np.uint8)
-            # Moving rectangle to create meaningful motion vectors
             x = (i * 4) % 48
             frame[16:48, x:x+16] = [80 + i*10, 120, 200 - i*8]
             frame[8:24, 8:24] = [200, 80, 80]

@@ -1,14 +1,6 @@
-"""
-Part 2 — Intra-frame Coding / I-frames (25%)
-- Block-based DCT compression on individual frames
-- Quantization matrix
-- Encoder and decoder
-"""
-
 import numpy as np
 from scipy.fft import dctn, idctn
 
-# ── Standard JPEG-like luminance quantization matrix (8×8) ──────────────────
 QUANT_MATRIX_LUMA = np.array([
     [16, 11, 10, 16, 24, 40, 51, 61],
     [12, 12, 14, 19, 26, 58, 60, 55],
@@ -35,11 +27,7 @@ BLOCK_SIZE = 8
 
 
 def get_quant_matrix(channel: str, qf: float = 1.0) -> np.ndarray:
-    """
-    Return the quantization matrix scaled by a quality factor qf.
-    qf > 1  → more quantization (lower quality, higher compression)
-    qf < 1  → less quantization (higher quality, lower compression)
-    """
+    
     base = QUANT_MATRIX_LUMA if channel == 'Y' else QUANT_MATRIX_CHROMA
     return np.clip(base * qf, 1, 255).astype(np.float32)
 
@@ -66,12 +54,7 @@ def idct2d(block: np.ndarray) -> np.ndarray:
 # ── Encode one channel ───────────────────────────────────────────────────────
 
 def encode_channel(channel: np.ndarray, quant_matrix: np.ndarray) -> tuple[np.ndarray, tuple]:
-    """
-    DCT + quantize a 2-D channel.
-    Returns:
-        coeffs  – quantized int16 array (same padded shape)
-        orig_shape – original (h, w) before padding
-    """
+    
     orig_shape = channel.shape
     padded = pad_to_multiple(channel)
     h, w = padded.shape
@@ -91,10 +74,7 @@ def encode_channel(channel: np.ndarray, quant_matrix: np.ndarray) -> tuple[np.nd
 
 def decode_channel(coeffs: np.ndarray, quant_matrix: np.ndarray,
                    orig_shape: tuple) -> np.ndarray:
-    """
-    Dequantize + IDCT a 2-D array of quantized DCT coefficients.
-    Returns reconstructed channel clipped to [0, 255].
-    """
+    
     h, w = coeffs.shape
     recon = np.zeros_like(coeffs, dtype=np.float32)
 
@@ -113,11 +93,7 @@ def decode_channel(coeffs: np.ndarray, quant_matrix: np.ndarray,
 # ── Full I-frame encode / decode ─────────────────────────────────────────────
 
 def encode_iframe(frame_data: dict, qf: float = 1.0) -> dict:
-    """
-    Encode a single I-frame (Y, Cb_sub, Cr_sub) using DCT + quantization.
-    frame_data: dict from part1_preprocessing.preprocess_frames()
-    Returns dict of quantized coefficients + metadata.
-    """
+    
     Y = frame_data['Y']
     Cb = frame_data['Cb_sub']
     Cr = frame_data['Cr_sub']
@@ -141,9 +117,7 @@ def encode_iframe(frame_data: dict, qf: float = 1.0) -> dict:
 
 
 def decode_iframe(encoded: dict) -> dict:
-    """
-    Decode an I-frame back to Y, Cb_sub, Cr_sub float32 channels.
-    """
+    
     qf = encoded['qf']
     qm_y = get_quant_matrix('Y', qf)
     qm_c = get_quant_matrix('C', qf)

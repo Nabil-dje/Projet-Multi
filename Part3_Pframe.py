@@ -1,10 +1,3 @@
-"""
-Part 3 — Inter-frame Coding / P-frames (25%)
-- GOP structure: every G-th frame is an I-frame, others are P-frames
-- Block matching (motion estimation) on 16×16 macroblocks
-- Residual coding with DCT + quantization
-"""
-
 import numpy as np
 from Part2_Iframe import (
     encode_channel, decode_channel,
@@ -18,12 +11,7 @@ MACROBLOCK_SIZE = 16
 
 def block_matching(current_Y: np.ndarray, reference_Y: np.ndarray,
                    search_window: int = 8) -> tuple[np.ndarray, np.ndarray]:
-    """
-    Full-search block matching on 16×16 macroblocks.
-    Returns:
-        motion_vectors – shape (num_blocks_h, num_blocks_w, 2) [dy, dx]
-        prediction     – motion-compensated prediction for current_Y
-    """
+    
     h, w = current_Y.shape
     MB = MACROBLOCK_SIZE
     S  = search_window
@@ -75,10 +63,9 @@ def block_matching(current_Y: np.ndarray, reference_Y: np.ndarray,
     return motion_vectors, prediction
 
 
-# ── Residual encode / decode ─────────────────────────────────────────────────
 
 def encode_residual(residual: np.ndarray, qf: float) -> tuple[np.ndarray, tuple]:
-    """DCT + quantize residual channel (same as I-frame channel encode)."""
+
     qm = get_quant_matrix('Y', qf)
     h, w = residual.shape
     padded = pad_to_multiple(residual)
@@ -95,7 +82,7 @@ def encode_residual(residual: np.ndarray, qf: float) -> tuple[np.ndarray, tuple]
 
 
 def decode_residual(coeffs: np.ndarray, orig_shape: tuple, qf: float) -> np.ndarray:
-    """Dequantize + IDCT residual channel."""
+
     qm = get_quant_matrix('Y', qf)
     ph, pw = coeffs.shape
     recon = np.zeros((ph, pw), dtype=np.float32)
@@ -109,15 +96,10 @@ def decode_residual(coeffs: np.ndarray, orig_shape: tuple, qf: float) -> np.ndar
     return recon[:oh, :ow]
 
 
-# ── P-frame encode / decode ──────────────────────────────────────────────────
 
 def encode_pframe(frame_data: dict, ref_decoded: dict,
                   qf: float = 1.0, search_window: int = 8) -> dict:
-    """
-    Encode a P-frame given the current frame and the decoded reference frame.
-    frame_data  – dict from preprocess_frames()
-    ref_decoded – dict returned by decode_iframe() or decode_pframe()
-    """
+    
     Y_cur  = frame_data['Y']
     Cb_cur = frame_data['Cb_sub']
     Cr_cur = frame_data['Cr_sub']
@@ -126,7 +108,7 @@ def encode_pframe(frame_data: dict, ref_decoded: dict,
     Cb_ref = ref_decoded['Cb_sub']
     Cr_ref = ref_decoded['Cr_sub']
 
-    # ── Motion estimation on Y channel ──────────────────────────────────────
+
     motion_vectors, Y_pred = block_matching(Y_cur, Y_ref, search_window)
 
     # ── Residuals ────────────────────────────────────────────────────────────
@@ -156,9 +138,7 @@ def encode_pframe(frame_data: dict, ref_decoded: dict,
 
 
 def decode_pframe(encoded: dict, ref_decoded: dict) -> dict:
-    """
-    Reconstruct a P-frame from its encoded data and the reference decoded frame.
-    """
+    
     qf = encoded['qf']
     motion_vectors = encoded['motion_vectors']
 
@@ -192,11 +172,9 @@ def decode_pframe(encoded: dict, ref_decoded: dict) -> dict:
     }
 
 
-# ── Helper: apply motion vectors to build prediction ────────────────────────
 
 def _apply_motion_from_vectors(ref: np.ndarray, motion_vectors: np.ndarray,
                                 scale: float = 1.0) -> np.ndarray:
-    """Build a prediction image by copying blocks from ref using motion vectors."""
     h, w = ref.shape
     MB = int(MACROBLOCK_SIZE * scale)
     MB = max(MB, 1)
@@ -232,11 +210,7 @@ def _apply_motion(ref: np.ndarray, motion_vectors: np.ndarray,
 
 def encode_gop(preprocessed_frames: list, gop_size: int = 8,
                qf: float = 1.0, search_window: int = 8) -> list:
-    """
-    Encode all frames using GOP structure.
-    Every gop_size-th frame (0, G, 2G, …) is an I-frame; others are P-frames.
-    Returns list of encoded frame dicts.
-    """
+    
     from Part2_Iframe import encode_iframe, decode_iframe
 
     encoded_frames = []
@@ -262,9 +236,7 @@ def encode_gop(preprocessed_frames: list, gop_size: int = 8,
 
 
 def decode_all_frames(encoded_frames: list) -> list:
-    """
-    Decode all encoded frames in order, returning list of decoded frame dicts.
-    """
+    
     from Part2_Iframe import decode_iframe
 
     decoded = []
